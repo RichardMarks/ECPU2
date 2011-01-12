@@ -18,6 +18,42 @@ package ecpu.assembler
 		
 		public function Assembler() {}
 		
+		static private function LTrim(s:String):String
+		{
+			var size:Number = s.length;
+			for (var i:Number = 0; i < size; i++)
+			{
+				if (s.charCodeAt(i) > 32)
+				{
+					return s.substring(i);
+				}
+			}
+			return "";
+		}
+		
+		private function StripCommentsAndEmptyLines(lines:Vector.<String>):Vector.<String>
+		{
+			var temp:Vector.<String> = new Vector.<String>();
+			for (var i:Number = 0; i < lines.length; i++)
+			{
+				var line:String = LTrim(lines[i]);
+				
+				if (line.length > 0)
+				{
+					if (line.substring(0, 1) != ";")
+					{
+						var commentPos:Number = line.indexOf(";", 2);
+						if (commentPos > 0)
+						{
+							line = line.substring(0, commentPos);
+						}
+						temp.push(line);
+					}
+				}
+			}
+			return temp;
+		}
+		
 		public function Assemble(source:String):void
 		{
 			code = new Vector.<Number>();
@@ -26,7 +62,10 @@ package ecpu.assembler
 			assemblingError = false;
 			assemblingErrors = new ErrorCache;
 			
-			var lines:Vector.<String> = new Vector.<String>(source.split("\r\n"));
+			var splitSource:Array = source.split("\r");
+			trace(splitSource.length);
+			var lines:Vector.<String> = Vector.<String>(splitSource);
+			lines = StripCommentsAndEmptyLines(lines);
 			
 			var assembled:Number = 0;
 			var sourceSize:Number = Number(lines.length);
@@ -47,7 +86,7 @@ package ecpu.assembler
 						var lineRead:Number = line + 1;
 						trace("Assembling:#0x", lineRead.toString(16).toUpperCase(), ":", lines[line]);
 						
-						var tokens:Vector.<String> = new Vector.<String>(lines[line].split(" "));
+						var tokens:Vector.<String> = Vector.<String>(lines[line].split(" "));
 						var numTokens:Number = tokens.length;
 						var instruction:String = tokens[0].toLowerCase();
 						
@@ -533,6 +572,7 @@ package ecpu.assembler
 			}
 			
 			trace("Assembled", sourceSize, "lines into", assembled, "instructions and", codeSize, "bytes.");
+			//trace(code);
 		}
 		
 		public function WriteBinary(filename:String):Boolean 

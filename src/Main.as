@@ -32,6 +32,7 @@ package
 		{
 			if (e.keyCode == Key.F5)
 			{
+				trace(inputPanel.text.split("\r").length);
 				assembler.Assemble(inputPanel.text);
 			}
 		}
@@ -59,6 +60,7 @@ package
 			inputPanel.border = true;
 			inputPanel.borderColor = 0xFFFFFF;
 			inputPanel.multiline = true;
+			inputPanel.wordWrap = false;
 			
 			outputPanel.defaultTextFormat = new TextFormat("courier", 16, 0xFFFFFF, true);
 			outputPanel.width = (stage.stageWidth / 2) - 2;
