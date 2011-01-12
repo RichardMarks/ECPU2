@@ -1,6 +1,7 @@
 package ecpu.emulator 
 {
 	import ecpu.common.CmpResult;
+	import ecpu.common.ErrorID;
 	import ecpu.common.PrinterMode;
 	import ecpu.common.TstResult;
 	import flash.net.FileReference;
@@ -80,7 +81,22 @@ package ecpu.emulator
 		 */
 		public function Load(code:Vector.<Number>):Boolean 
 		{
+			var codeSize:Number = code.length;
+			if ((codeSize + VRAM_USER) >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				return false;
+			}
 			
+			for (var offset:Number = 0; offset < codeSize; offset++)
+			{
+				vram[VRAM_USER + offset] = code[offset];
+			}
+			
+			dp = 0;
+			ip = 0;
+			
+			return true;
 		}
 		
 		/**
