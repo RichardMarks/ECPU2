@@ -35,6 +35,9 @@ package ecpu.emulator
 		/// start of stack virtual memory (end of free memory)
 		static public const VRAM_STACK:uint = 0x0FFFFF;
 		
+		
+		public var stdout:String;
+		
 		/// is the cpu processing
 		private var processing:Boolean;
 
@@ -112,56 +115,564 @@ package ecpu.emulator
 		}
 		
 		/// perform a hardware reset -- all virtual memory is cleared and pointers are reset
-		private function HardwareReset():void { }
+		private function HardwareReset():void 
+		{ 
+			for (var location:Number = 0; location < VRAM_SIZE; location++)
+			{
+				vram[location] = 0;
+			}
+			
+			ip = 0;
+			dp = 0;
+			sp = VRAM_STACK;
+			
+			lastCmp = CmpResult.INVALID;
+			lastTst = TstResult.INVALID;
+			lastError = ErrorID.NONE;
+			jumped = false;
+			printerMode = PrinterMode.CHARACTER;
+			processingError = false;
+		}
 		
 		/// processes the current instruction - returns false on error
 		private function ProcessInstruction():Boolean { }
 
 		/// outputs a single character to stdout
-		private function OutputCharacter(character:String):void { }
+		private function OutputCharacter(character:String):void 
+		{
+			stdout += character;
+		}
 		
 		/// outputs a single integer to stdout
-		private function OutputInteger(integer:Number):void { }
+		private function OutputInteger(integer:Number):void 
+		{
+			stdout += integer.toString();
+		}
 
 		/// returns a psuedo-random number between lowerlimit and upperlimit inclusive
-		private function GenerateRandomInteger(lowerlimit:Number, upperlimit:Number):Number { }
+		private function GenerateRandomInteger(lowerLimit:Number, upperLimit:Number):Number 
+		{
+			var r:Number = 0;
+			var range:Number = (upperLimit - lowerLimit);
+			
+			if (range <= 0)
+			{
+				range = 1;
+			}
+			
+			r = lowerLimit + Math.random() % range;
+			return r;
+		}
 
 		/// advances the instruction pointer by count
-		private function Skip(count:Number = 1):void { }
+		private function Skip(count:Number = 1):void 
+		{
+			ip += count;
+		}
 
 		/// instruction set implementations
-		private function Nop():void { }
-		private function Reset():void { }
-		private function Rand():void { }
+		
+		private function Nop():void 
+		{
+			// waste CPU cycles
+		}
+		
+		private function Reset():void 
+		{ 
+			HardwareReset(); 
+		}
+		
+		private function Rand():void 
+		{ 
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			vram[dp] = GenerateRandomInteger(operandA, operandB);
+		}
 
-		private function Inc():void { }
-		private function Dec():void { }
-		private function Var():void { }
-		private function Set():void { }
-		private function Copy():void { }
-		private function Adv():void { }
+		private function Inc():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] += operandA;
+		}
+		
+		private function Dec():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] -= operandA;
+		}
+		
+		private function Var():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			dp = operandA;
+		}
+		
+		private function Set():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = operandA;
+		}
+		
+		private function Copy():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			
+			if (operandA >= VRAM_SIZE || operandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			vram[operandB] = operandA;
+		}
+		
+		private function Adv():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			operandA = vram[operandA];
+			
+			if (dp + operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			dp += operandA;
+		}
 
-		private function Add():void { }
-		private function Sub():void { }
-		private function Mul():void { }
-		private function Div():void { }
-		private function Shl():void { }
-		private function Shr():void { }
-		private function Mod():void { }
-		private function Sqrt():void { }
-		private function Sin():void { }
-		private function Cos():void { }
-		private function Tan():void { }
-		private function Acos():void { }
-		private function Asin():void { }
-		private function Atan():void { }
-		private function Pow():void { }
+		private function Add():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			
+			if (operandA >= VRAM_SIZE || operandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			vram[dp] = vram[operandA] + vram[operandB];
+		}
+		
+		private function Sub():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			
+			if (operandA >= VRAM_SIZE || operandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			vram[dp] = vram[operandA] - vram[operandB];
+		}
+		
+		private function Mul():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			
+			if (operandA >= VRAM_SIZE || operandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			vram[dp] = vram[operandA] * vram[operandB];
+		}
+		
+		private function Div():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			
+			if (operandA >= VRAM_SIZE || operandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (operandB <= 0) 
+			{
+				lastError = ErrorID.DIVIDE_BY_ZERO;
+				processingError = true;
+				return;
+			}
+			
+			vram[dp] = vram[operandA] / vram[operandB];
+		}
+		
+		private function Shl():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = (vram[dp] << operandA);
+		}
+		
+		private function Shr():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = (vram[dp] >> operandA);
+		}
+		
+		private function Mod():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA <= 0)
+			{
+				lastError = ErrorID.DIVIDE_BY_ZERO;
+				processingError = true;
+				return;
+			}
+			
+			vram[dp] = (vram[dp] % operandA);
+		}
+		
+		private function Sqrt():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.sqrt(operandA);
+		}
+		
+		private function Sin():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.sin(operandA);
+		}
+		
+		private function Cos():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.cos(operandA);
+		}
+		
+		private function Tan():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.tan(operandA);
+		}
+		
+		private function Acos():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.acos(operandA);
+		}
+		
+		private function Asin():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.asin(operandA);
+		}
+		
+		private function Atan():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.atan(operandA);
+		}
+		
+		private function Pow():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			vram[dp] = Math.pow(vram[dp], operandA);
+		}
 
-		private function Print():void { }
-		private function SetPrint():void { }
+		private function Print():void 
+		{
+			if (printerMode == PrinterMode.CHARACTER)
+			{
+				OutputCharacter(String.fromCharCode(vram[dp]));
+			}
+			else
+			{
+				OutputInteger(vram[dp]);
+			}
+		}
+		
+		private function SetPrint():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= PrinterMode.INVALID)
+			{
+				lastError = ErrorID.BAD_PRINT_MODE;
+				processingError = true;
+				return;
+			}
+			
+			printerMode = operandA;
+		}
 
-		private function Jmp():void { }
-		private function End():void { }
+		private function Jmp():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			ip = operandA;
+			jumped = true;
+		}
+		
+		private function End():void 
+		{
+			processing = false;
+		}
 
 		private function Cmp():void { }
 		private function Tst():void { }
@@ -178,7 +689,10 @@ package ecpu.emulator
 		private function Pop():void { }
 		private function Popall():void { }
 
-		private function SysCall():void { }
+		private function SysCall():void 
+		{
+			
+		}
 
 		// bios routine implementations
 		private function BiosGetChar():void { }
