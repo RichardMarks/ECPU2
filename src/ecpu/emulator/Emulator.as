@@ -674,16 +674,283 @@ package ecpu.emulator
 			processing = false;
 		}
 
-		private function Cmp():void { }
-		private function Tst():void { }
-		private function Je():void { }
-		private function Jne():void { }
-		private function Jl():void { }
-		private function Jg():void { }
-		private function Jle():void { }
-		private function Jge():void { }
-		private function Jz():void { }
-		private function Jnz():void { }
+		private function Cmp():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			var addressForOperandB:Number = VRAM_USER + 2 + ip;
+			
+			if (addressForOperandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			var operandB:Number = vram[addressForOperandB];
+			
+			if (operandA >= VRAM_SIZE || operandB >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			operandA = vram[operandA];
+			operandB = vram[operandB];
+			
+			lastCmp = CmpResult.INVALID;
+			
+			if (operandA == operandB)
+			{
+				lastCmp = CmpResult.EQUAL;
+			}
+			else
+			{
+				lastCmp = CmpResult.NOTEQUAL;
+			}
+			
+			if (operandA < operandB)
+			{
+				lastCmp |= CmpResult.LESS;
+			}
+			else if (operandA > operandB)
+			{
+				lastCmp |= CmpResult.GREATER;
+			}
+		}
+		
+		private function Tst():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			lastTst = (operandA == 0)? TstResult.ZERO : TstResult.NOTZERO;
+		}
+		
+		private function Je():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (lastCmp & CmpResult.EQUAL)
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jne():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (lastCmp & CmpResult.NOTEQUAL)
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jl():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (lastCmp & CmpResult.LESS)
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jg():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (lastCmp & CmpResult.GREATER)
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jle():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if ((lastCmp & CmpResult.LESS) || (lastCmp & CmpResult.EQUAL))
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jge():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if ((lastCmp & CmpResult.GREATER) || (lastCmp & CmpResult.EQUAL))
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jz():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (lastTst == TstResult.ZERO)
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
+		
+		private function Jnz():void 
+		{
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			if (lastTst == TstResult.NOTZERO)
+			{
+				ip = operandA;
+				jumped = true;
+			}
+		}
 
 		private function Push():void { }
 		private function Pop():void { }
