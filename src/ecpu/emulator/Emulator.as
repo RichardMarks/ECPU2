@@ -952,9 +952,128 @@ package ecpu.emulator
 			}
 		}
 
-		private function Push():void { }
-		private function Pop():void { }
-		private function Popall():void { }
+		private function Push():void 
+		{
+			// check if we have space to grow the stack
+			// the stack grows in reverse from the end of free memory to the start of vram
+			// the stack will overwrite anything you have stored in memory if
+			// it happens to grow that large!
+			
+			if (sp - 1 < 0)
+			{
+				processingError = true;
+				lastError = ErrorID.OUT_OF_STACK_SPACE;
+				return;
+			}
+			
+			// get the value to be pushed (operand)
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			// copy the value to vram and reduce the stack pointer (grow the stack)
+			vram[sp] = vram[operandA];
+			sp--;
+		}
+		
+		private function Pop():void 
+		{
+			// check if there is anything to pop
+			if (VRAM_STACK == sp)
+			{
+				lastError = ErrorID.STACK_EMPTY;
+				processingError = true;
+				return;
+			}
+			
+			// get the address to pop into
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			// copy the value from stack to vram at the desired address
+			// and increase the stack pointer (shrink the stack)
+			vram[operandA] = vram[sp];
+			sp++;
+		}
+		
+		private function Popall():void 
+		{
+			// check if there is anything to pop
+			if (VRAM_STACK == sp)
+			{
+				lastError = ErrorID.STACK_EMPTY;
+				processingError = true;
+				return;
+			}
+
+			// get the address to pop into
+			var addressForOperandA:Number = VRAM_USER + 1 + ip;
+			
+			if (addressForOperandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var operandA:Number = vram[addressForOperandA];
+			
+			if (operandA >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			var stackSize:Number = Math.abs(VRAM_STACK - sp);
+			
+			if (operandA + stackSize >= VRAM_SIZE)
+			{
+				lastError = ErrorID.OUT_OF_MEMORY;
+				processingError = true;
+				return;
+			}
+			
+			// loop over the stack
+			var offset:Number = 0;
+			for (var address:Number = sp; address < VRAM_STACK; address++)
+			{
+				// copy the value from stack to vram at the desired address
+				// and increase the stack pointer (shrink the stack)
+				vram[operandA + offset] = vram[address];
+				offset++;
+				sp++;
+			}
+		}
 
 		private function SysCall():void 
 		{
