@@ -1,12 +1,15 @@
 package 
 {
+	import ecpu.assembler.Assembler;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.KeyboardEvent;
 	import flash.events.TextEvent;
 	import flash.text.StyleSheet;
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
 	import flash.text.TextFormat;
+	import net.flashpunk.utils.Key;
 
 	/**
 	 * ...
@@ -15,21 +18,36 @@ package
 	[Frame(factoryClass="Preloader")]
 	public class Main extends Sprite 
 	{
+		private var assembler:Assembler = new Assembler;
+		private var inputPanel:TextField = new TextField;
+		private var outputPanel:TextField = new TextField;
+		
 		public function Main():void 
 		{
 			if (stage) init();
 			else addEventListener(Event.ADDED_TO_STAGE, init);
 		}
 
+		private function OnKeyDown(e:KeyboardEvent):void
+		{
+			if (e.keyCode == Key.F5)
+			{
+				assembler.Assemble(inputPanel.text);
+			}
+		}
+		
 		private function init(e:Event = null):void 
 		{
 			removeEventListener(Event.ADDED_TO_STAGE, init);
+			
+			addEventListener(KeyboardEvent.KEY_DOWN, OnKeyDown);
+			
 			// entry point
 			
 			// build interface
 			
-			var inputPanel:TextField = new TextField;
-			var outputPanel:TextField = new TextField;
+			
+			
 			
 			
 			inputPanel.type = TextFieldType.INPUT;
