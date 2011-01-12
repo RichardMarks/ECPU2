@@ -1,0 +1,29 @@
+
+ECPU2 - AS3 Implementation and Continuation of The ECPU Project.
+(C) Copyright 2011, Richard Marks
+
+ECPU2 is an application containing the ECPU assembler, disassembler, and emulator programs.
+This will enable you to write programs using ECPU Assembly instructions, assemble and execute 
+your programs using a single IDE interface.
+
+You can export your programs as assembled binary files which you can import and execute using the
+emulator.
+
+This project is being made open-source, and you may use this code as you wish as long as you retain
+my copyright above in the project. Thank you.
+
+-------------------------------------------------------------------------------
+
+The ECPU Project
+(C) Copyright 2010, Richard Marks
+
+The ECPU Project is a project that is a personal challenge of mine. 
+The idea started with writing a virtual machine that could execute a stream 
+of instructions and perform the associated actions.
+
+At the time of this writing, the project has matured into an emulator, assembler, and disassembler.
+There is a micro-language of 37 instructions that somewhat resembles an assembly dialect. 
+
+You write simple programs in the assembly language that I've dubbed ECPU Assembly, 
+and then you run them through the ECPU Assembler, which creates an ECPU Binary program 
+that the emulator can execute.
