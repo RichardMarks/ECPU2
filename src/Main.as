@@ -42,6 +42,7 @@ package
 				if (assembler.CodeSize > 0)
 				{
 					trace("Attempting to execute assembled machine code.");
+					emulator.stdout = "";
 					emulator.Run(assembler.MachineCode);
 					outputPanel.appendText(emulator.stdout);
 				}

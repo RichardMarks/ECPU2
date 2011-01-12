@@ -99,6 +99,7 @@ package ecpu.emulator
 			
 			dp = 0;
 			ip = 0;
+			sp = VRAM_STACK;
 			
 			return true;
 		}
@@ -109,6 +110,8 @@ package ecpu.emulator
 		 */
 		public function Run(code:Vector.<Number> = null):void
 		{
+			vram = new Vector.<Number>(VRAM_SIZE);
+			
 			if (code != null)
 			{
 				Load(code);
