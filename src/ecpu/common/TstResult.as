@@ -4,7 +4,7 @@ package ecpu.common
 	 * ...
 	 * @author Richard Marks
 	 */
-	public class TstResult extends Number
+	public class TstResult
 	{
 		static public const ZERO:Number = 0;
 		static public const NOTZERO:Number = 1;

@@ -2,6 +2,7 @@ package ecpu.emulator
 {
 	import ecpu.common.CmpResult;
 	import ecpu.common.ErrorID;
+	import ecpu.common.InstructionSet;
 	import ecpu.common.PrinterMode;
 	import ecpu.common.TstResult;
 	import flash.net.FileReference;
@@ -60,13 +61,13 @@ package ecpu.emulator
 		private var vram:Vector.<Number>;
 
 		/// the result of the last cmp operation
-		private var lastCmp:CmpResult;
+		private var lastCmp:Number;
 
 		/// the result of the last tst operation
-		private var lastTst:TstResult;
+		private var lastTst:Number;
 
 		/// what mode is the stdout printer in
-		private var printerMode:PrinterMode;
+		private var printerMode:Number;
 
 		/// have we jumped
 		private var jumped:Boolean;
@@ -112,6 +113,32 @@ package ecpu.emulator
 			{
 				Load(code);
 			}
+			
+			processing = true;
+			
+			var instructions:Number = 0;
+			
+			while((VRAM_SIZE > (VRAM_USER + ip)) && processing)
+			{
+				if (processing)
+				{
+					if (!ProcessInstruction())
+					{
+						processing = false;
+					}
+					instructions++;
+				}
+			}
+			
+			if (!processingError)
+			{
+				trace("FINISHED: [", instructions, " instructions processed]");
+			}
+			else
+			{
+				trace("FINISHED WITH ERRORS: [", instructions, " instructions processed]");
+				trace("Last Error: ", lastError);
+			}
 		}
 		
 		/// perform a hardware reset -- all virtual memory is cleared and pointers are reset
@@ -132,10 +159,91 @@ package ecpu.emulator
 			jumped = false;
 			printerMode = PrinterMode.CHARACTER;
 			processingError = false;
+			stdout = "";
 		}
 		
 		/// processes the current instruction - returns false on error
-		private function ProcessInstruction():Boolean { }
+		private function ProcessInstruction():Boolean 
+		{
+			if (VRAM_USER + ip >= VRAM_SIZE)
+			{
+				lastError = ErrorID.INSTRUCTION_POINTER_IS_PAST_END_OF_MEMORY;
+				processingError = true;
+				return false;
+			}
+			
+			var instruction:Number = vram[VRAM_USER + ip];
+			
+			if (instruction >= InstructionSet.INS_INVALID)
+			{
+				lastError = ErrorID.INVALID_INSTRUCTION;
+				processingError = true;
+				return false;
+			}
+			
+			switch(instruction)
+			{
+				// misc
+				case InstructionSet.INS_NOP: 	{ Nop(); } break;
+				case InstructionSet.INS_RESET: 	{ Reset(); } break;
+				case InstructionSet.INS_RAND: 	{ Rand(); Skip(2); } break;
+				
+				// data manip
+				case InstructionSet.INS_INC: 		{ Inc(); Skip(); } break;
+				case InstructionSet.INS_DEC: 		{ Dec(); Skip(); } break;
+				case InstructionSet.INS_VAR: 		{ Var(); Skip(); } break;
+				case InstructionSet.INS_SET: 		{ Set(); Skip(); } break;
+				case InstructionSet.INS_COPY: 		{ Copy();Skip(2); } break;
+				case InstructionSet.INS_ADV:		{ Adv(); Skip(); } break;
+				
+				// math
+				case InstructionSet.INS_ADD: 		{ Add(); Skip(2); } break;
+				case InstructionSet.INS_SUB: 		{ Sub(); Skip(2); } break;
+				case InstructionSet.INS_MUL: 		{ Mul(); Skip(2); } break;
+				case InstructionSet.INS_DIV: 		{ Div(); Skip(2); } break;
+				case InstructionSet.INS_SHL: 		{ Shl(); Skip(); } break;
+				case InstructionSet.INS_SHR: 		{ Shr(); Skip(); } break;
+				case InstructionSet.INS_MOD: 		{ Mod(); Skip(); } break;
+				case InstructionSet.INS_SQRT: 		{ Sqrt(); Skip(); } break;
+				case InstructionSet.INS_SIN: 		{ Sin(); Skip(); } break;
+				case InstructionSet.INS_COS: 		{ Cos(); Skip(); } break;
+				case InstructionSet.INS_TAN: 		{ Tan(); Skip(); } break;
+				case InstructionSet.INS_ACOS: 		{ Acos(); Skip(); } break;
+				case InstructionSet.INS_ASIN: 		{ Asin(); Skip(); } break;
+				case InstructionSet.INS_ATAN: 		{ Atan(); Skip(); } break;
+				case InstructionSet.INS_POW: 		{ Pow(); Skip(); } break;
+				
+				// output
+				case InstructionSet.INS_PRINT:		{ Print(); } break;
+				case InstructionSet.INS_SETPRINT:	{ SetPrint(); Skip(); } break;
+				
+				// logic
+				case InstructionSet.INS_JMP: 		{ Jmp(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_END: 		{ End(); 		} break;
+				case InstructionSet.INS_CMP: 		{ Cmp(); 		Skip(2); } break;
+				case InstructionSet.INS_TST: 		{ Tst(); 		Skip(); } break;
+				case InstructionSet.INS_JE: 		{ Je(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JNE: 		{ Jne(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JL: 		{ Jl(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JG: 		{ Jg(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JLE: 		{ Jle(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JGE: 		{ Jge(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JZ: 		{ Jz(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				case InstructionSet.INS_JNZ: 		{ Jnz(); 		if (!jumped) { Skip(); } jumped = false; } break;
+				
+				default: break;
+			}
+			
+			++ip;
+			if (VRAM_USER + ip >= VRAM_SIZE)
+			{
+				lastError = ErrorID.INSTRUCTION_STREAM_ENDED_PREMATURELY;
+				processingError = true;
+				return false;
+			}
+			
+			return true;
+		}
 
 		/// outputs a single character to stdout
 		private function OutputCharacter(character:String):void 

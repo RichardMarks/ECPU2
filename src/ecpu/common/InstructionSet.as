@@ -64,6 +64,6 @@ package ecpu.common
 		static public const INS_SYSCALL:Number = 41;
 		
 		// not an instruction - used for handling unsupported opcodes
-		static public const INS_INVALID:Number = 9999;
+		static public const INS_INVALID:Number = INS_SYSCALL + 1;
 	}
 }

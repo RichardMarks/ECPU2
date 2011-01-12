@@ -4,7 +4,7 @@ package ecpu.common
 	 * ...
 	 * @author Richard Marks
 	 */
-	public class CmpResult extends Number
+	public class CmpResult
 	{
 		static public const EQUAL:Number = 0x1;
 		static public const NOTEQUAL:Number = 0x2;

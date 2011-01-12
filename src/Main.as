@@ -1,6 +1,7 @@
 package 
 {
 	import ecpu.assembler.Assembler;
+	import ecpu.emulator.Emulator;
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.KeyboardEvent;
@@ -18,6 +19,7 @@ package
 	[Frame(factoryClass="Preloader")]
 	public class Main extends Sprite 
 	{
+		private var emulator:Emulator = new Emulator;
 		private var assembler:Assembler = new Assembler;
 		private var inputPanel:TextField = new TextField;
 		private var outputPanel:TextField = new TextField;
@@ -34,6 +36,19 @@ package
 			{
 				trace(inputPanel.text.split("\r").length);
 				assembler.Assemble(inputPanel.text);
+			}
+			else if (e.keyCode == Key.F8)
+			{
+				if (assembler.CodeSize > 0)
+				{
+					trace("Attempting to execute assembled machine code.");
+					emulator.Run(assembler.MachineCode);
+					outputPanel.appendText(emulator.stdout);
+				}
+				else
+				{
+					trace("You must first assemble a machine code program before running the emulator.");
+				}
 			}
 		}
 		

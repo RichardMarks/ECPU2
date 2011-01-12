@@ -16,6 +16,9 @@ package ecpu.assembler
 		private var assemblingError:Boolean;
 		private var assemblingErrors:ErrorCache;
 		
+		public function get MachineCode():Vector.<Number> { return code; }
+		public function get CodeSize():Number { if (code == null) { return 0; } return code.length; }
+		
 		public function Assembler() {}
 		
 		static private function LTrim(s:String):String
